@@ -350,21 +350,3 @@ The query interface is nearly identical; replace `db.run` / `db.all` with `pool.
 | Scope backend queries | ~2 hrs | Clerk server SDK |
 | Scoped sidebar + auth UI | ~2 hrs | `useAuth()`, `<UserButton>` |
 | Postgres (optional for scale) | ~1 day | `pg`, hosted Postgres |
-
----
-
-## Bugs Fixed
-
-| # | Bug | Fix |
-|---|-----|-----|
-| 1 | Clicking suggestion cards only filled the input — didn't send | Cards call `handleSend()` directly |
-| 2 | "Check Progression" called `get_exercise_history("recent exercise history")` — wrong exercise name | System prompt forbids tool calls without a specific named exercise |
-| 3 | `log_workout_set` called with `0kg / 0 reps` placeholder values | System prompt guard: never call without real numeric values from the user |
-| 4 | Session history loaded card messages as raw `JSON.stringify(card)` | Cards reconstructed as human-readable summaries on session load |
-| 5 | Assistant message had `content: undefined` for tool-only turns | Fixed to `content: null` in OpenAI adapter (required by spec) |
-| 6 | `.avatar.agent` / `.message-wrapper.agent` CSS never matched | Renamed to `.avatar.model` / `.message-wrapper.model` to match JSX |
-| 7 | Hamburger icon had no click handler — sidebar never opened on mobile | Added `sidebarOpen` state, slide-in animation, and dimmed overlay |
-| 8 | "New workout" and sidebar nav links didn't close sidebar on mobile | All navigation paths call `setSidebarOpen(false)` |
-| 9 | Textarea stayed at one line — no grow on long messages | `onInput` handler auto-resizes up to 200px |
-| 10 | Empty assistant bubble remained when model only made tool calls | Placeholder bubble is removed before the card is rendered |
-| 11 | Session titles stayed as truncated raw user message | Title updated from the first model text reply via `PUT /api/sessions/:id/title` |
