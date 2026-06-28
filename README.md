@@ -4,6 +4,34 @@ An AI-powered conversational training system that acts as a personal strength co
 
 ---
 
+## Problem framing
+
+Most fitness apps are recording tools. They let you log a set, see a chart, and that's it. The gap they don't close: **what should I do next, and why?**
+
+I built Strength Coach around that missing piece. The core insight is that strength training is a long game — every session is connected to the one before it and informs the one after it. A useful tool shouldn't just store what happened; it should actively manage the progression.
+
+**What this is:** a conversational interface that acts as a real coach. When you log a set it immediately compares it to your history, calculates volume delta, and tells you what to target next session. When you report fatigue it adjusts the recommendation. When you ask for form cues it gives you the mechanical setup, not generic advice.
+
+**What I deliberately left out:**
+- *Workout plan generation* — generating cookie-cutter programs is easy and already saturated. The harder and more valuable problem is adapting to what actually happened in training.
+- *Social / gamification* — not relevant to the core coaching loop.
+- *Multi-user auth* — the architecture is single-user for now (no `user_id` scoping). The future path is documented in [Future Enhancements](#future-enhancements).
+- *Mobile app* — responsive web covers the use case without the distribution overhead.
+
+**Who this is for:** lifters who already know what they're doing and want a system that tracks progression and tells them when to push and when to back off. Not beginners who need a program generator.
+
+---
+
+## Demo
+
+<video src="docs/demo.webm" width="100%" controls autoplay loop muted></video>
+
+> **To embed on GitHub:** drag `docs/demo.webm` into any issue or PR comment box — GitHub will host it and give you a `https://github.com/user-attachments/assets/…` URL. Paste that URL here to replace the `src` above.
+>
+> Re-record anytime with `make demo` (both dev servers must be running). Output: `docs/demo.webm`.
+
+---
+
 ## Screenshots
 
 | Home | Chat with Set Logged | Training Log | Mobile Sidebar |
@@ -24,14 +52,14 @@ An AI-powered conversational training system that acts as a personal strength co
 │  │ Sidebar  │   │              Main Content                  │  │
 │  │          │   │                                            │  │
 │  │ Sessions │   │  ┌──────────────────────────────────────┐  │  │
-│  │ History  │   │  │  New Chat (hero + suggestion cards)  │  │  │
+│  │ History  │   │  │  NewChatScreen (hero + suggestions)  │  │  │
 │  │          │   │  └──────────────────────────────────────┘  │  │
 │  │ Training │   │               ── or ──                     │  │
 │  │ Log link │   │  ┌──────────────────────────────────────┐  │  │
-│  └──────────┘   │  │  Chat Area (messages + cards)        │  │  │
+│  └──────────┘   │  │  ChatArea (MessageBubble + AgentCard)│  │  │
 │                 │  └──────────────────────────────────────┘  │  │
 │                 │  ┌──────────────────────────────────────┐  │  │
-│                 │  │  Input Box (textarea + send)         │  │  │
+│                 │  │  InputBox (textarea + send)          │  │  │
 │                 │  └──────────────────────────────────────┘  │  │
 │                 └────────────────────────────────────────────┘  │
 └────────────────────┬──────────────────┬─────────────────────────┘
@@ -53,10 +81,10 @@ An AI-powered conversational training system that acts as a personal strength co
 User types message
        │
        ▼
-handleSend()
+App.jsx handleSend()
   ├─ create session if new (POST /api/sessions)
   ├─ save user message (POST /api/sessions/:id/messages)
-  └─ processLLMResponse(history)
+  └─ useChatSession.sendMessage()
          │
          ▼
   streamLLMChat() ──► LLM API (SSE stream)
@@ -65,12 +93,13 @@ handleSend()
          │
          └─ functionCall ──► executeTool()
                 │                  │
+                │            ├─ web_search ──► DuckDuckGo Instant Answer API
                 │            ├─ log_workout_set ──► POST /api/logs
                 │            ├─ get_exercise_history ──► GET /api/logs?exercise=
                 │            ├─ look_up_form ──► local form cues dict
                 │            └─ log_recovery_metrics ──► POST /api/recovery
                 │
-                └─ render UI card + recurse with tool result ──► processLLMResponse()
+                └─ buildCardData() ──► AgentCard ──► recurse with tool result
 ```
 
 ### File map
@@ -78,18 +107,41 @@ handleSend()
 ```
 conversational-system/
 ├── src/
-│   ├── App.jsx              # Main component: state, chat logic, render
-│   ├── index.css            # All active styles + media queries
-│   └── lib/
-│       ├── llm.js           # Provider detection, streamLLMChat entry point
-│       ├── prompt.js        # SYSTEM_PROMPT (coaching persona + tool rules)
-│       ├── tools.js         # Tool schemas + executeTool dispatcher
-│       ├── api.js           # Thin fetch wrappers for backend REST API
-│       └── adapters/
-│           ├── openai.js    # OpenAI-compatible SSE streaming + tool call parsing
-│           └── groq.js      # Groq adapter (wraps openai.js with Groq base URL)
+│   ├── App.jsx                      # Thin orchestration: nav state → components
+│   ├── index.css                    # All active styles + media queries
+│   ├── components/
+│   │   ├── AgentCard.jsx            # Tool-result card (progress/form/recovery/search)
+│   │   ├── ChatArea.jsx             # Scrolling message list + streaming indicator
+│   │   ├── InputBox.jsx             # Textarea + send button (normal + centered modes)
+│   │   ├── MessageBubble.jsx        # Single message with avatar + optional card
+│   │   ├── NewChatScreen.jsx        # Hero + suggestion cards + centered input
+│   │   ├── Sidebar.jsx              # Session list, new chat, training log nav
+│   │   └── TrainingLogView.jsx      # Training log table
+│   ├── hooks/
+│   │   └── useChatSession.js        # All streaming + tool-call loop logic
+│   ├── lib/
+│   │   ├── llm.js                   # Provider detection, streamLLMChat entry point
+│   │   ├── prompt.js                # SYSTEM_PROMPT (coaching persona + tool rules)
+│   │   ├── tools.js                 # Tool schemas + executeTool dispatcher
+│   │   ├── cards.js                 # Pure buildCardData() — tool result → card shape
+│   │   ├── api.js                   # Thin fetch wrappers for backend REST API
+│   │   └── adapters/
+│   │       ├── openai.js            # OpenAI-compatible SSE streaming + tool call parsing
+│   │       └── groq.js              # Groq adapter (wraps openai.js with Groq base URL)
+│   └── __tests__/
+│       ├── setup.js                 # @testing-library/jest-dom + jsdom patches
+│       ├── tools.test.js            # executeTool dispatcher (all tools incl. web_search)
+│       ├── cards.test.js            # buildCardData() — all tool types + edge cases
+│       └── components/
+│           ├── AgentCard.test.jsx
+│           ├── ChatArea.test.jsx
+│           ├── InputBox.test.jsx
+│           ├── MessageBubble.test.jsx
+│           ├── NewChatScreen.test.jsx
+│           ├── Sidebar.test.jsx
+│           └── TrainingLogView.test.jsx
 └── server/
-    └── index.js             # Express: SQLite CRUD + server-side progression logic
+    └── index.js                     # Express: SQLite CRUD + server-side progression logic
 ```
 
 ---
@@ -178,17 +230,15 @@ conversational-system/
 - Node.js 18+
 - An API key for OpenAI or Groq
 
-### Install
+### 1 — Install
 
 ```bash
-# Frontend deps
-npm install
-
-# Backend deps
-cd server && npm install && cd ..
+make install
 ```
 
-### Configure
+This runs `npm install` in the root and `cd server && npm install` in one shot.
+
+### 2 — Configure
 
 Copy `.env.example` to `.env` and fill in your key:
 
@@ -201,7 +251,9 @@ VITE_OPENAI_API_KEY=sk-...
 VITE_OPENAI_MODEL=gpt-4o   # optional, defaults to gpt-4o
 ```
 
-### Run
+### 3 — Run
+
+**Option A — two terminals (recommended for development):**
 
 ```bash
 # Terminal 1 — SQLite REST API on :3001
@@ -211,7 +263,49 @@ node server/index.js
 npm run dev
 ```
 
+**Option B — one command (backend in background):**
+
+```bash
+make dev-bg
+```
+
 Open `http://localhost:5173`.
+
+### Makefile reference
+
+| Command | What it does |
+|---------|-------------|
+| `make install` | Install all deps (frontend + backend) |
+| `make dev-bg` | Start backend in background, frontend in foreground |
+| `make test` | Run all tests (server + frontend) |
+| `make test-server` | Jest tests for the Express API and business logic |
+| `make test-client` | Vitest tests for the frontend tool dispatcher |
+| `make build` | Production build |
+| `make lint` | ESLint |
+
+---
+
+## Tests
+
+```bash
+make test        # run everything (server + frontend)
+make test-server # Jest: Express API + business logic
+make test-client # Vitest: frontend tools + components
+```
+
+**~100 tests total** across three suites:
+
+| Suite | Framework | What's covered |
+|-------|-----------|----------------|
+| `server/__tests__/logic.test.js` | Jest | `getExerciseRecommendation` and `getRecoveryRecommendation` — all progression branches (baseline, load PR, volume increase, top-end reps, stagnation) and all recovery branches (low sleep, high soreness, low energy, green light, priority ordering) |
+| `server/__tests__/api.test.js` | Jest + supertest | All REST endpoints against an isolated temp SQLite DB — POST/GET logs, POST recovery, GET training-log, POST/GET sessions, POST/GET/PUT messages |
+| `src/__tests__/tools.test.js` | Vitest | `executeTool` dispatcher — `web_search` (results, related topics, empty, network error), form cues, `log_workout_set`, `get_exercise_history`, `log_recovery_metrics`, unknown tool error |
+| `src/__tests__/cards.test.js` | Vitest | `buildCardData()` — every tool type including `web_search`, edge cases (missing fields, empty history, fallback values) |
+| `src/__tests__/components/*.test.jsx` | Vitest + Testing Library | One file per component: render, interaction, props, edge cases |
+
+The server tests spin up the full Express app against a throwaway `test.sqlite` that's deleted when Jest exits — no manual cleanup needed.
+
+Component tests run in jsdom via Vitest + `@testing-library/react`. No test renderer or snapshot tests — everything asserts against real DOM output.
 
 ---
 
@@ -230,12 +324,19 @@ Set `VITE_LLM_PROVIDER=groq` or `VITE_LLM_PROVIDER=openai` to force a provider. 
 
 | Tool | When triggered | What it does |
 |------|---------------|--------------|
+| `web_search` | User asks about research, techniques, or topics needing current info | Queries DuckDuckGo Instant Answer API — free, no key required |
 | `log_workout_set` | User reports exercise + weight + reps | Saves to `logs` table; returns saved record |
 | `get_exercise_history` | User asks about progression for a named exercise | Returns last 5 sets for that exercise |
 | `look_up_form` | User asks for form cues or reports discomfort | Returns cues from built-in dict |
 | `log_recovery_metrics` | User provides sleep/soreness/energy data | Saves to `recovery` table |
 
 The coach will **not** call tools with missing or placeholder values — it asks the user for specific data first (enforced via system prompt rules).
+
+### Web search
+
+Uses the [DuckDuckGo Instant Answer API](https://duckduckgo.com/api) — no API key, no sign-up, no rate-limit registration. Queries run client-side from the browser. Results include an abstract (when available) and up to four related topics.
+
+This makes the coach useful for questions like "what does the research say about rest periods" or "what's the difference between RPE and RIR" without leaving the conversation.
 
 ---
 

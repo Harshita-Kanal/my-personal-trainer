@@ -1,8 +1,19 @@
-import { api } from './api';
+import { workoutService } from '../services/workoutService';
 
 export const gymTools = [
   {
     functionDeclarations: [
+      {
+        name: "web_search",
+        description: "Search the web for current information about exercise science, training techniques, nutrition, supplements, or any other topic relevant to the athlete's training. Use when you need up-to-date information, specific research, or the athlete asks about a technique or concept you're unsure about.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: { type: "STRING", description: "Specific search query. Include context like 'strength training' or 'hypertrophy' for better results." }
+          },
+          required: ["query"]
+        }
+      },
       {
         name: "log_workout_set",
         description: "Logs a single workout set. Use this whenever the user reports an exercise, weight, and reps.",
@@ -58,19 +69,45 @@ export const gymTools = [
 
 export const executeTool = async (functionCall) => {
   const { name, args } = functionCall;
-  
+
+  if (name === 'web_search') {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(args.query)}&format=json&no_redirect=1&no_html=1`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Search request failed: ${response.status}`);
+    const data = await response.json();
+
+    const results = [];
+    if (data.AbstractText) {
+      results.push({ title: data.Heading || args.query, snippet: data.AbstractText, url: data.AbstractURL });
+    }
+    const flatTopics = (data.RelatedTopics || []).flatMap(t =>
+      t.Topics ? t.Topics : [t]
+    );
+    for (const topic of flatTopics.slice(0, 4)) {
+      if (topic.Text && topic.FirstURL) {
+        results.push({ title: topic.Text.slice(0, 80), snippet: topic.Text, url: topic.FirstURL });
+      }
+    }
+    return {
+      status: 'success',
+      query: args.query,
+      results,
+      message: results.length === 0 ? 'No results found. Try rephrasing the query.' : undefined,
+    };
+  }
+
   if (name === 'log_workout_set') {
-    const log = await api.saveLog(args);
+    const log = await workoutService.saveLog(args);
     return { status: "success", message: "Set saved to SQLite database", log };
   }
-  
+
   if (name === 'get_exercise_history') {
-    const history = await api.getLogs(args.exercise);
-    return { status: "success", history: history.slice(0, 5) }; // Top 5 recent
+    const history = await workoutService.getLogs(args.exercise);
+    return { status: "success", history: history.slice(0, 5) };
   }
 
   if (name === 'log_recovery_metrics') {
-    const res = await api.logRecovery(args);
+    const res = await workoutService.logRecovery(args);
     return { status: "success", message: "Recovery data saved to SQLite database", recovery: res };
   }
 

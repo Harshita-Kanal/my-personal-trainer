@@ -8,14 +8,11 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize DB
-const dbPath = path.resolve(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database', err);
-  } else {
-    console.log('Connected to the SQLite database.');
-    
-    // Create tables
+const dbPath = process.env.DB_PATH || path.resolve(__dirname, 'database.sqlite');
+const db = new sqlite3.Database(dbPath);
+
+const ready = new Promise((resolve, reject) => {
+  db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       exercise TEXT NOT NULL,
@@ -25,7 +22,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       date TEXT NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
-    
+
     db.run(`CREATE TABLE IF NOT EXISTS recovery (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       sleep_hours REAL,
@@ -41,7 +38,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       title TEXT NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
-    
+
     db.run(`CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id INTEGER NOT NULL,
@@ -50,8 +47,11 @@ const db = new sqlite3.Database(dbPath, (err) => {
       card_data TEXT,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (session_id) REFERENCES sessions(id)
-    )`);
-  }
+    )`, (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
 });
 
 const getExerciseRecommendation = (log, previousLog) => {
@@ -219,6 +219,18 @@ app.post('/api/sessions/:id/messages', (req, res) => {
   });
 });
 
+app.delete('/api/sessions/:id', (req, res) => {
+  const sessionId = req.params.id;
+  db.run(`DELETE FROM messages WHERE session_id = ?`, [sessionId], (msgErr) => {
+    if (msgErr) return res.status(500).json({ error: msgErr.message });
+    db.run(`DELETE FROM sessions WHERE id = ?`, [sessionId], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'Session not found' });
+      res.json({ success: true });
+    });
+  });
+});
+
 app.put('/api/sessions/:id/title', (req, res) => {
   const sessionId = req.params.id;
   const { title } = req.body;
@@ -228,7 +240,11 @@ app.put('/api/sessions/:id/title', (req, res) => {
   });
 });
 
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Backend DB server running on http://localhost:${PORT}`);
-});
+module.exports = { app, ready, getExerciseRecommendation, getRecoveryRecommendation };
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Backend DB server running on http://localhost:${PORT}`);
+  });
+}
