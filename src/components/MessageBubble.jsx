@@ -1,4 +1,5 @@
 import { Dumbbell, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { AgentCard } from './AgentCard';
 
 export function MessageBubble({ message }) {
@@ -10,7 +11,11 @@ export function MessageBubble({ message }) {
         {role === 'model' ? <Dumbbell size={20} /> : <User size={20} />}
       </div>
       <div className="message-content">
-        {content && <div className="message-bubble">{content}</div>}
+        {content && (
+          <div className="message-bubble">
+            {role === 'model' ? <ReactMarkdown>{content}</ReactMarkdown> : content}
+          </div>
+        )}
         {card && <AgentCard card={card} />}
       </div>
     </div>

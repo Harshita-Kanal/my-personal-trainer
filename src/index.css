@@ -292,7 +292,20 @@ body {
 .message-bubble {
   font-size: 1rem;
   line-height: 1.6;
-  white-space: pre-wrap;
+}
+
+.message-wrapper.model .message-bubble p { margin: 0 0 0.6em; }
+.message-wrapper.model .message-bubble p:last-child { margin-bottom: 0; }
+.message-wrapper.model .message-bubble ul,
+.message-wrapper.model .message-bubble ol { margin: 0.4em 0 0.6em 1.2em; padding: 0; }
+.message-wrapper.model .message-bubble li { margin-bottom: 0.2em; }
+.message-wrapper.model .message-bubble strong { font-weight: 600; }
+.message-wrapper.model .message-bubble code {
+  font-family: monospace;
+  background: var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.9em;
 }
 
 .message-wrapper.user .message-bubble {

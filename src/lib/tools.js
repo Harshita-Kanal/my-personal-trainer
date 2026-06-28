@@ -111,8 +111,11 @@ export const executeTool = async (functionCall) => {
   if (name === 'log_workout_set') {
     const exerciseErr = requireExercise(args.exercise);
     if (exerciseErr) return exerciseErr;
-    if (!args.weight || args.weight === 0) return { status: 'error', message: 'No weight specified. Ask the user what weight they used.' };
-    if (!args.reps || args.reps === 0) return { status: 'error', message: 'No reps specified. Ask the user how many reps they completed.' };
+    const weight = Number(args.weight);
+    const reps = Number(args.reps);
+    if (!args.weight || isNaN(weight) || weight <= 0) return { status: 'error', message: 'No valid weight specified. Ask the user what weight they used (a number in kg or lbs).' };
+    if (!args.reps || isNaN(reps) || reps <= 0) return { status: 'error', message: 'No valid rep count specified. Ask the user how many reps they completed.' };
+    if (!args.unit || /bodyweight|bw/i.test(args.unit)) return { status: 'error', message: 'No unit specified. Ask the user whether the weight is in kg or lbs.' };
     const log = await workoutService.saveLog(args);
     return { status: "success", message: "Set saved to SQLite database", log };
   }
