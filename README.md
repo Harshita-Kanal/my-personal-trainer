@@ -1,6 +1,6 @@
 # Strength Coach 🏋️‍♀️
 
-A conversational training system that acts as a personal strength coach: logging sets, analyzing progression, providing form cues, and managing fatigue. Built with React, a Node/SQLite backend, and a streaming LLM interface that works with OpenAI-compatible providers (OpenAI, Groq).
+A conversational agent that acts as a personal strength coach: logging sets, analyzing progression, providing form cues, and managing fatigue. Built with React, a Node/SQLite backend, and a streaming LLM interface that works with OpenAI-compatible providers (OpenAI, Groq).
 
 ---
 
