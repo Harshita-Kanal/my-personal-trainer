@@ -1,6 +1,6 @@
-# Strength Coach
+# Strength Coach 🏋️‍♀️
 
-An AI-powered conversational training system that acts as a personal strength coach — logging sets, analyzing progression, providing form cues, and managing fatigue. Built with React, a Node/SQLite backend, and a streaming LLM interface that works with OpenAI-compatible providers (OpenAI, Groq).
+A conversational training system that acts as a personal strength coach: logging sets, analyzing progression, providing form cues, and managing fatigue. Built with React, a Node/SQLite backend, and a streaming LLM interface that works with OpenAI-compatible providers (OpenAI, Groq).
 
 ---
 
@@ -8,7 +8,7 @@ An AI-powered conversational training system that acts as a personal strength co
 
 Most fitness apps are recording tools. They let you log a set, see a chart, and that's it. The gap they don't close: **what should I do next, and why?**
 
-I built Strength Coach around that missing piece. The core insight is that strength training is a long game — every session is connected to the one before it and informs the one after it. A useful tool shouldn't just store what happened; it should actively manage the progression.
+I built Strength Coach around that missing piece. The core insight is that strength training is a long game. Every session is connected to the one before it and informs the one after it. A useful tool shouldn't just store what happened; it should actively manage the progression.
 
 **What this is:** a conversational interface that acts as a real coach. When you log a set it immediately compares it to your history, calculates volume delta, and tells you what to target next session. When you report fatigue it adjusts the recommendation. When you ask for form cues it gives you the mechanical setup, not generic advice.
 
@@ -24,15 +24,15 @@ I built Strength Coach around that missing piece. The core insight is that stren
 
 ## Extending to other personas
 
-This architecture isn't specific to strength coaching — it's a pattern for any domain where you want a conversational agent with memory, structured tool calls, and a persistent data layer. Swapping the persona is mostly a config-and-schema change, not a rewrite.
+This architecture isn't specific to strength coaching. It's a pattern for any domain where you want a conversational agent with memory, structured tool calls, and a persistent data layer. Swapping the persona is mostly a config-and-schema change, not a rewrite.
 
 **The three things you replace per persona:**
 
-1. **System prompt** (`src/lib/prompt.js`) — defines the agent's voice, decision-making rules, and what it asks before calling tools. A support agent gets escalation logic and ticket-triage rules; a metrics analyst gets data-interpretation heuristics and thresholds.
+1. **System prompt** (`src/lib/prompt.js`): defines the agent's voice, decision-making rules, and what it asks before calling tools. A support agent gets escalation logic and ticket-triage rules; a metrics analyst gets data-interpretation heuristics and thresholds.
 
-2. **Tool definitions + dispatcher** (`src/lib/tools.js`) — the JSON schemas and `executeTool` switch. New tools call new backend endpoints. The streaming tool-call loop in `useChatSession.js` doesn't change.
+2. **Tool definitions + dispatcher** (`src/lib/tools.js`): the JSON schemas and `executeTool` switch. New tools call new backend endpoints. The streaming tool-call loop in `useChatSession.js` doesn't change.
 
-3. **Database tables + backend endpoints** (`server/index.js`) — replace `logs` / `recovery` with whatever the domain needs. The session/messages tables are persona-agnostic and stay as-is.
+3. **Database tables + backend endpoints** (`server/index.js`): replace `logs` / `recovery` with whatever the domain needs. The session/messages tables are persona-agnostic and stay as-is.
 
 **Example personas and what changes:**
 
@@ -43,7 +43,7 @@ This architecture isn't specific to strength coaching — it's a pattern for any
 | Nutrition coach | Macro targets, meal logging, deficit management | `log_meal`, `get_nutrition_history`, `calculate_tdee` | `meals`, `nutrition_goals` |
 | Study assistant | Spaced repetition rules, topic tracking | `log_session`, `get_weak_topics`, `schedule_review` | `study_sessions`, `topics` |
 
-The UI (chat area, sidebar, cards, streaming indicator) is completely reusable. The only frontend component that needs persona-specific work is `AgentCard.jsx` — it renders tool result cards, so you add a new card variant per tool type. Everything else — session management, message persistence, streaming, mobile layout — carries over unchanged.
+The UI (chat area, sidebar, cards, streaming indicator) is completely reusable. The only frontend component that needs persona-specific work is `AgentCard.jsx`, which renders tool result cards. Everything else (session management, message persistence, streaming, mobile layout) carries over unchanged.
 
 **Shortest path to a new persona:**
 1. Fork the repo, rename the app
@@ -52,17 +52,13 @@ The UI (chat area, sidebar, cards, streaming indicator) is completely reusable. 
 4. Add new tables to `server/index.js` and wire up the endpoints
 5. Add card variants in `AgentCard.jsx` for the new tool types
 
-The test structure mirrors the code structure — `tools.test.js`, `cards.test.js`, and `api.test.js` give you test patterns to copy for the new domain.
+The test structure mirrors the code structure. `tools.test.js`, `cards.test.js`, and `api.test.js` give you test patterns to copy for the new domain.
 
 ---
 
 ## Demo
 
 <video src="docs/demo.webm" width="100%" controls autoplay loop muted></video>
-
-> **To embed on GitHub:** drag `docs/demo.webm` into any issue or PR comment box — GitHub will host it and give you a `https://github.com/user-attachments/assets/…` URL. Paste that URL here to replace the `src` above.
->
-> Re-record anytime with `make demo` (both dev servers must be running). Output: `docs/demo.webm`.
 
 ---
 
@@ -71,8 +67,6 @@ The test structure mirrors the code structure — `tools.test.js`, `cards.test.j
 | Home | Chat with Set Logged | Training Log | Mobile Sidebar |
 |------|---------------------|--------------|----------------|
 | ![Home](docs/screenshots/home.png) | ![Chat](docs/screenshots/chat-set-logged.png) | ![Log](docs/screenshots/training-log.png) | ![Mobile](docs/screenshots/mobile-sidebar.png) |
-
-> To regenerate: open `http://localhost:5173` and capture each view into `docs/screenshots/`.
 
 ---
 
@@ -188,7 +182,7 @@ conversational-system/
 2. Click **"Log a Set"** or type e.g. `Bench press 80kg x 5`
 3. Coach calls `log_workout_set` → set saved to SQLite
 4. A **Set Logged** card appears showing exercise, weight, and reps
-5. Coach replies with progression analysis — volume delta, next target weight
+5. Coach replies with progression analysis: volume delta, next target weight
 6. Session appears in the sidebar titled from the first model reply
 
 > **Tool called:** `log_workout_set(exercise, weight, unit, reps)`
@@ -222,7 +216,7 @@ conversational-system/
 ### 4. Manage Fatigue
 
 1. Click **"Manage Fatigue"** → sends *"I want to assess my readiness to train today. Ask me what you need."*
-2. Coach asks for sleep hours, soreness (1–10), energy (1–10)
+2. Coach asks for sleep hours, soreness (1-10), energy (1-10)
 3. User provides metrics → coach calls `log_recovery_metrics`
 4. A **Recovery Logged** card appears with all metrics
 5. Coach gives a training recommendation: progress / maintain / deload
@@ -331,15 +325,15 @@ make test-client # Vitest: frontend tools + components
 
 | Suite | Framework | What's covered |
 |-------|-----------|----------------|
-| `server/__tests__/logic.test.js` | Jest | `getExerciseRecommendation` and `getRecoveryRecommendation` — all progression branches (baseline, load PR, volume increase, top-end reps, stagnation) and all recovery branches (low sleep, high soreness, low energy, green light, priority ordering) |
-| `server/__tests__/api.test.js` | Jest + supertest | All REST endpoints against an isolated temp SQLite DB — POST/GET logs, POST recovery, GET training-log, POST/GET sessions, POST/GET/PUT messages |
-| `src/__tests__/tools.test.js` | Vitest | `executeTool` dispatcher — `web_search` (results, related topics, empty, network error), form cues, `log_workout_set`, `get_exercise_history`, `log_recovery_metrics`, unknown tool error |
-| `src/__tests__/cards.test.js` | Vitest | `buildCardData()` — every tool type including `web_search`, edge cases (missing fields, empty history, fallback values) |
+| `server/__tests__/logic.test.js` | Jest | `getExerciseRecommendation` and `getRecoveryRecommendation`: all progression branches (baseline, load PR, volume increase, top-end reps, stagnation) and all recovery branches (low sleep, high soreness, low energy, green light, priority ordering) |
+| `server/__tests__/api.test.js` | Jest + supertest | All REST endpoints against an isolated temp SQLite DB: POST/GET logs, POST recovery, GET training-log, POST/GET sessions, POST/GET/PUT messages |
+| `src/__tests__/tools.test.js` | Vitest | `executeTool` dispatcher: `web_search` (results, related topics, empty, network error), form cues, `log_workout_set`, `get_exercise_history`, `log_recovery_metrics`, unknown tool error |
+| `src/__tests__/cards.test.js` | Vitest | `buildCardData()`: every tool type including `web_search`, edge cases (missing fields, empty history, fallback values) |
 | `src/__tests__/components/*.test.jsx` | Vitest + Testing Library | One file per component: render, interaction, props, edge cases |
 
-The server tests spin up the full Express app against a throwaway `test.sqlite` that's deleted when Jest exits — no manual cleanup needed.
+The server tests spin up the full Express app against a throwaway `test.sqlite` that's deleted when Jest exits. No manual cleanup needed.
 
-Component tests run in jsdom via Vitest + `@testing-library/react`. No test renderer or snapshot tests — everything asserts against real DOM output.
+Component tests run in jsdom via Vitest + `@testing-library/react`. No test renderer or snapshot tests; everything asserts against real DOM output.
 
 ---
 
@@ -358,17 +352,17 @@ Set `VITE_LLM_PROVIDER=groq` or `VITE_LLM_PROVIDER=openai` to force a provider. 
 
 | Tool | When triggered | What it does |
 |------|---------------|--------------|
-| `web_search` | User asks about research, techniques, or topics needing current info | Queries DuckDuckGo Instant Answer API — free, no key required |
+| `web_search` | User asks about research, techniques, or topics needing current info | Queries DuckDuckGo Instant Answer API (free, no key required) |
 | `log_workout_set` | User reports exercise + weight + reps | Saves to `logs` table; returns saved record |
 | `get_exercise_history` | User asks about progression for a named exercise | Returns last 5 sets for that exercise |
 | `look_up_form` | User asks for form cues or reports discomfort | Returns cues from built-in dict |
 | `log_recovery_metrics` | User provides sleep/soreness/energy data | Saves to `recovery` table |
 
-The coach will **not** call tools with missing or placeholder values — it asks the user for specific data first (enforced via system prompt rules).
+The coach will **not** call tools with missing or placeholder values. It asks the user for specific data first (enforced via system prompt rules).
 
 ### Web search
 
-Uses the [DuckDuckGo Instant Answer API](https://duckduckgo.com/api) — no API key, no sign-up, no rate-limit registration. Queries run client-side from the browser. Results include an abstract (when available) and up to four related topics.
+Uses the [DuckDuckGo Instant Answer API](https://duckduckgo.com/api): no API key, no sign-up, no rate-limit registration. Queries run client-side from the browser. Results include an abstract (when available) and up to four related topics.
 
 This makes the coach useful for questions like "what does the research say about rest periods" or "what's the difference between RPE and RIR" without leaving the conversation.
 
@@ -390,8 +384,8 @@ CREATE TABLE logs (
 CREATE TABLE recovery (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   sleep_hours    REAL,
-  soreness_level INTEGER,        -- 1–10
-  energy_level   INTEGER,        -- 1–10
+  soreness_level INTEGER,        -- 1-10
+  energy_level   INTEGER,        -- 1-10
   notes          TEXT,
   date           TEXT NOT NULL,
   timestamp      DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -461,7 +455,7 @@ All `INSERT` statements receive `req.userId` as the `user_id` value.
 
 The sidebar currently shows all sessions globally. After auth:
 
-- Sessions are fetched with the user's JWT attached → only their sessions return
+- Sessions are fetched with the user's JWT attached, so only their sessions return
 - A user avatar / sign-out button replaces the hamburger area on desktop
 - "New workout" creates a session tagged to the current `userId`
 - Loading a session verifies `session.user_id === currentUserId` before rendering
