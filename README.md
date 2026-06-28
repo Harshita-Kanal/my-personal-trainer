@@ -58,7 +58,7 @@ The test structure mirrors the code structure. `tools.test.js`, `cards.test.js`,
 
 ## Demo
 
-<video src="docs/demo.webm" width="100%" controls autoplay loop muted></video>
+<video src="https://github.com/user-attachments/assets/91bd6509-e23c-46bc-8d83-2b873c2cf5de" width="100%" controls autoplay loop muted></video>
 
 ---
 
