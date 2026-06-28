@@ -219,6 +219,16 @@ app.post('/api/sessions/:id/messages', (req, res) => {
   });
 });
 
+app.delete('/api/history', (req, res) => {
+  db.run(`DELETE FROM logs`, (logsErr) => {
+    if (logsErr) return res.status(500).json({ error: logsErr.message });
+    db.run(`DELETE FROM recovery`, (recErr) => {
+      if (recErr) return res.status(500).json({ error: recErr.message });
+      res.json({ success: true });
+    });
+  });
+});
+
 app.delete('/api/sessions/:id', (req, res) => {
   const sessionId = req.params.id;
   db.run(`DELETE FROM messages WHERE session_id = ?`, [sessionId], (msgErr) => {

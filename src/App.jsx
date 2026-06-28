@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Menu } from 'lucide-react';
 import { getLLMConfig } from './lib/llm';
 import { sessionService } from './services/sessionService';
 import { workoutService } from './services/workoutService';
+import { api } from './lib/api';
 import { useChatSession } from './hooks/useChatSession';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
@@ -18,6 +19,7 @@ function App() {
   const [sidebarSessions, setSidebarSessions] = useState([]);
   const [trainingLog, setTrainingLog] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const inputBoxRef = useRef(null);
 
   const { messages, isStreaming, currentSessionId, sendMessage, loadSession, startNewChat } =
     useChatSession(llmConfig, () => {
@@ -40,6 +42,10 @@ function App() {
   useEffect(() => {
     if (currentView === 'history') refreshTrainingLog();
   }, [currentView]);
+
+  useEffect(() => {
+    if (!isStreaming) inputBoxRef.current?.focus();
+  }, [isStreaming]);
 
   // ─── send ────────────────────────────────────────────────────────────────────
 
@@ -111,9 +117,16 @@ function App() {
         </div>
 
         {currentView === 'history' ? (
-          <TrainingLogView trainingLog={trainingLog} />
+          <TrainingLogView
+            trainingLog={trainingLog}
+            onClearHistory={async () => {
+              await api.clearHistory();
+              await refreshTrainingLog();
+            }}
+          />
         ) : isNewChat ? (
           <NewChatScreen
+            inputRef={inputBoxRef}
             inputValue={inputValue}
             onInputChange={setInputValue}
             onSend={handleSend}
@@ -123,6 +136,7 @@ function App() {
           <>
             <ChatArea messages={messages} isStreaming={isStreaming} />
             <InputBox
+              ref={inputBoxRef}
               value={inputValue}
               onChange={setInputValue}
               onSend={() => handleSend()}

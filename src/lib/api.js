@@ -20,6 +20,15 @@ export const api = {
       return [];
     }
   },
+  clearHistory: async () => {
+    try {
+      const res = await fetch(`${API_URL}/history`, { method: 'DELETE' });
+      return await res.json();
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  },
   saveLog: async (log) => {
     try {
       const res = await fetch(`${API_URL}/logs`, {

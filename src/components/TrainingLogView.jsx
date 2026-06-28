@@ -1,15 +1,44 @@
-import { Calendar, Dumbbell, Activity } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Dumbbell, Activity, Trash2 } from 'lucide-react';
 
-export function TrainingLogView({ trainingLog }) {
+export function TrainingLogView({ trainingLog, onClearHistory }) {
+  const [confirming, setConfirming] = useState(false);
+
+  const handleClear = async () => {
+    if (!confirming) { setConfirming(true); return; }
+    await onClearHistory();
+    setConfirming(false);
+  };
+
   return (
     <div style={{ flex: 1, padding: '40px', overflowY: 'auto', backgroundColor: '#f9fafb' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Calendar size={24} color="var(--primary)" /> Training Log
-        </h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
-          Your complete history of logged workouts and progression.
-        </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <div>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={24} color="var(--primary)" /> Training Log
+            </h2>
+            <p style={{ color: 'var(--text-muted)' }}>
+              Your complete history of logged workouts and progression.
+            </p>
+          </div>
+          <button
+            onClick={handleClear}
+            onBlur={() => setConfirming(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 14px', borderRadius: '8px', border: '1px solid',
+              borderColor: confirming ? '#ef4444' : 'var(--border)',
+              background: confirming ? '#fef2f2' : 'white',
+              color: confirming ? '#ef4444' : 'var(--text-muted)',
+              fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap',
+              marginTop: '4px',
+            }}
+          >
+            <Trash2 size={14} />
+            {confirming ? 'Confirm delete' : 'Clear history'}
+          </button>
+        </div>
 
         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

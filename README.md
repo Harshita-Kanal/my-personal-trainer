@@ -22,6 +22,40 @@ I built Strength Coach around that missing piece. The core insight is that stren
 
 ---
 
+## Extending to other personas
+
+This architecture isn't specific to strength coaching — it's a pattern for any domain where you want a conversational agent with memory, structured tool calls, and a persistent data layer. Swapping the persona is mostly a config-and-schema change, not a rewrite.
+
+**The three things you replace per persona:**
+
+1. **System prompt** (`src/lib/prompt.js`) — defines the agent's voice, decision-making rules, and what it asks before calling tools. A support agent gets escalation logic and ticket-triage rules; a metrics analyst gets data-interpretation heuristics and thresholds.
+
+2. **Tool definitions + dispatcher** (`src/lib/tools.js`) — the JSON schemas and `executeTool` switch. New tools call new backend endpoints. The streaming tool-call loop in `useChatSession.js` doesn't change.
+
+3. **Database tables + backend endpoints** (`server/index.js`) — replace `logs` / `recovery` with whatever the domain needs. The session/messages tables are persona-agnostic and stay as-is.
+
+**Example personas and what changes:**
+
+| Persona | System prompt focus | New tools | New DB tables |
+|---------|--------------------|-----------|----|
+| Customer support | Ticket triage, escalation policy, tone rules | `open_ticket`, `get_ticket_history`, `escalate_to_agent` | `tickets`, `escalations` |
+| Business metrics | KPI interpretation, anomaly thresholds, trend analysis | `query_metric`, `get_trend`, `flag_anomaly` | `metrics`, `snapshots` |
+| Nutrition coach | Macro targets, meal logging, deficit management | `log_meal`, `get_nutrition_history`, `calculate_tdee` | `meals`, `nutrition_goals` |
+| Study assistant | Spaced repetition rules, topic tracking | `log_session`, `get_weak_topics`, `schedule_review` | `study_sessions`, `topics` |
+
+The UI (chat area, sidebar, cards, streaming indicator) is completely reusable. The only frontend component that needs persona-specific work is `AgentCard.jsx` — it renders tool result cards, so you add a new card variant per tool type. Everything else — session management, message persistence, streaming, mobile layout — carries over unchanged.
+
+**Shortest path to a new persona:**
+1. Fork the repo, rename the app
+2. Rewrite `src/lib/prompt.js`
+3. Replace tool schemas in `src/lib/tools.js` and update `executeTool`
+4. Add new tables to `server/index.js` and wire up the endpoints
+5. Add card variants in `AgentCard.jsx` for the new tool types
+
+The test structure mirrors the code structure — `tools.test.js`, `cards.test.js`, and `api.test.js` give you test patterns to copy for the new domain.
+
+---
+
 ## Demo
 
 <video src="docs/demo.webm" width="100%" controls autoplay loop muted></video>

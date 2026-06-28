@@ -5,26 +5,26 @@ export const DEFAULT_SUGGESTIONS = [
   {
     title: 'Log a Set',
     description: 'Track weights, reps, and performance.',
-    prompt: 'I want to log a set.',
+    prompt: 'I want to log a set. Ask me what exercise, weight, and reps.',
   },
   {
     title: 'Check Progression',
     description: 'Analyze past performance and volume.',
-    prompt: 'Check my progression and tell me what to target next.',
+    prompt: 'I want to check my progression. Ask me which exercise.',
   },
   {
     title: 'Form Check',
     description: 'Get mechanical cues and safety tips.',
-    prompt: 'I want a form check on an exercise.',
+    prompt: 'I want a form check. Ask me which exercise.',
   },
   {
     title: 'Manage Fatigue',
     description: 'Autoregulate volume based on recovery.',
-    prompt: 'Help me assess my readiness to train today.',
+    prompt: 'Help me assess my readiness to train today. Ask me about my sleep, soreness, and energy.',
   },
 ];
 
-export function NewChatScreen({ suggestions = DEFAULT_SUGGESTIONS, inputValue, onInputChange, onSend, isStreaming }) {
+export function NewChatScreen({ suggestions = DEFAULT_SUGGESTIONS, inputRef, inputValue, onInputChange, onSend, isStreaming }) {
   return (
     <div className="new-chat-container">
       <div className="hero-branding">
@@ -33,6 +33,7 @@ export function NewChatScreen({ suggestions = DEFAULT_SUGGESTIONS, inputValue, o
       </div>
 
       <InputBox
+        ref={inputRef}
         value={inputValue}
         onChange={onInputChange}
         onSend={onSend}

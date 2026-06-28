@@ -67,6 +67,18 @@ export const gymTools = [
   }
 ];
 
+const requireExercise = (exercise) => {
+  const e = (exercise || '').trim();
+  // Reject if empty, too long to be a real exercise name, or contains instruction-like words
+  const isPlaceholder = !e
+    || e.length > 40
+    || /\b(specify|please|tell|which|what|the exercise|not specified|unspecified|unknown|placeholder|you want|you're doing|you are doing)\b/i.test(e);
+  if (isPlaceholder) {
+    return { status: 'error', message: 'No exercise specified. Ask the user which exercise they want before calling this tool.' };
+  }
+  return null;
+};
+
 export const executeTool = async (functionCall) => {
   const { name, args } = functionCall;
 
@@ -97,11 +109,17 @@ export const executeTool = async (functionCall) => {
   }
 
   if (name === 'log_workout_set') {
+    const exerciseErr = requireExercise(args.exercise);
+    if (exerciseErr) return exerciseErr;
+    if (!args.weight || args.weight === 0) return { status: 'error', message: 'No weight specified. Ask the user what weight they used.' };
+    if (!args.reps || args.reps === 0) return { status: 'error', message: 'No reps specified. Ask the user how many reps they completed.' };
     const log = await workoutService.saveLog(args);
     return { status: "success", message: "Set saved to SQLite database", log };
   }
 
   if (name === 'get_exercise_history') {
+    const exerciseErr = requireExercise(args.exercise);
+    if (exerciseErr) return exerciseErr;
     const history = await workoutService.getLogs(args.exercise);
     return { status: "success", history: history.slice(0, 5) };
   }
@@ -112,6 +130,8 @@ export const executeTool = async (functionCall) => {
   }
 
   if (name === 'look_up_form') {
+    const exerciseErr = requireExercise(args.exercise);
+    if (exerciseErr) return exerciseErr;
     const formCues = {
       "squat": "1. Bar over mid-foot. 2. Brace core tightly. 3. Break at hips and knees simultaneously. 4. Drive chest up out of the hole.",
       "bench press": "1. Retract and depress scapula. 2. Maintain 5 points of contact (head, shoulders, glutes, both feet). 3. Bar path should be slightly diagonal.",

@@ -1,6 +1,13 @@
+import { forwardRef, useRef, useImperativeHandle } from 'react';
 import { Send } from 'lucide-react';
 
-export function InputBox({ value, onChange, onSend, disabled, centered = false }) {
+export const InputBox = forwardRef(function InputBox({ value, onChange, onSend, disabled, centered = false }, ref) {
+  const textareaRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    focus: () => textareaRef.current?.focus(),
+  }));
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -15,6 +22,7 @@ export function InputBox({ value, onChange, onSend, disabled, centered = false }
         style={centered ? { padding: '12px 20px', borderRadius: '32px', background: 'var(--bg-sidebar)', borderColor: 'transparent' } : {}}
       >
         <textarea
+          ref={textareaRef}
           className="message-input"
           placeholder={centered ? 'Log your set or ask for a progression check...' : 'Message Strength Coach...'}
           value={value}
@@ -44,4 +52,4 @@ export function InputBox({ value, onChange, onSend, disabled, centered = false }
       )}
     </div>
   );
-}
+});
