@@ -250,11 +250,20 @@ app.put('/api/sessions/:id/title', (req, res) => {
   });
 });
 
+// Serve React build in production
+const distPath = path.resolve(__dirname, '../dist');
+if (require('fs').existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 module.exports = { app, ready, getExerciseRecommendation, getRecoveryRecommendation };
 
 if (require.main === module) {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
-    console.log(`Backend DB server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
