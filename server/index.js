@@ -254,7 +254,7 @@ app.put('/api/sessions/:id/title', (req, res) => {
 const distPath = path.resolve(__dirname, '../dist');
 if (require('fs').existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get('*', (req, res) => {
+  app.get('/{*path}', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
