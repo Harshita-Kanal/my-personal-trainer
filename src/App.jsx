@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
-import { Show, SignIn, SignUp } from '@clerk/react';
+import { Show } from '@clerk/react';
 import { getLLMConfig } from './lib/llm';
 import { sessionService } from './services/sessionService';
 import { workoutService } from './services/workoutService';
@@ -10,6 +11,8 @@ import { ChatArea } from './components/ChatArea';
 import { InputBox } from './components/InputBox';
 import { NewChatScreen } from './components/NewChatScreen';
 import { TrainingLogView } from './components/TrainingLogView';
+import { LandingPage } from './components/LandingPage';
+import { LoginPage, SignUpPage } from './components/AuthScreen';
 
 function MainApp() {
   const llmConfig = getLLMConfig();
@@ -149,46 +152,38 @@ function MainApp() {
   );
 }
 
-const authAppearance = {
-  elements: {
-    footerAction: { display: 'none' },
-    header: 'auth-widget-header',
-  },
-};
-
-function AuthScreen() {
-  const [mode, setMode] = useState('sign-in');
-
-  return (
-    <div className="auth-screen">
-      <div>
-        {mode === 'sign-in' ? (
-          <SignIn routing="virtual" appearance={authAppearance} />
-        ) : (
-          <SignUp routing="virtual" appearance={authAppearance} />
-        )}
-        <p className="auth-toggle">
-          {mode === 'sign-in' ? (
-            <>Don't have an account? <button onClick={() => setMode('sign-up')}>Sign up</button></>
-          ) : (
-            <>Already have an account? <button onClick={() => setMode('sign-in')}>Sign in</button></>
-          )}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function App() {
   return (
-    <>
-      <Show when="signed-out">
-        <AuthScreen />
-      </Show>
-      <Show when="signed-in">
-        <MainApp />
-      </Show>
-    </>
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <>
+            <Show when="signed-out"><LoginPage /></Show>
+            <Show when="signed-in"><Navigate to="/" replace /></Show>
+          </>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <>
+            <Show when="signed-out"><SignUpPage /></Show>
+            <Show when="signed-in"><Navigate to="/" replace /></Show>
+          </>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          <>
+            <Show when="signed-out"><LandingPage /></Show>
+            <Show when="signed-in"><MainApp /></Show>
+          </>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
