@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu } from 'lucide-react';
+import { Show, SignIn, SignUp } from '@clerk/react';
 import { getLLMConfig } from './lib/llm';
 import { sessionService } from './services/sessionService';
 import { workoutService } from './services/workoutService';
-import { api } from './lib/api';
 import { useChatSession } from './hooks/useChatSession';
 import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
@@ -11,7 +11,7 @@ import { InputBox } from './components/InputBox';
 import { NewChatScreen } from './components/NewChatScreen';
 import { TrainingLogView } from './components/TrainingLogView';
 
-function App() {
+function MainApp() {
   const llmConfig = getLLMConfig();
 
   const [currentView, setCurrentView] = useState('chat');
@@ -120,7 +120,7 @@ function App() {
           <TrainingLogView
             trainingLog={trainingLog}
             onClearHistory={async () => {
-              await api.clearHistory();
+              await workoutService.clearHistory();
               await refreshTrainingLog();
             }}
           />
@@ -146,6 +146,49 @@ function App() {
         )}
       </div>
     </div>
+  );
+}
+
+const authAppearance = {
+  elements: {
+    footerAction: { display: 'none' },
+    header: 'auth-widget-header',
+  },
+};
+
+function AuthScreen() {
+  const [mode, setMode] = useState('sign-in');
+
+  return (
+    <div className="auth-screen">
+      <div>
+        {mode === 'sign-in' ? (
+          <SignIn routing="virtual" appearance={authAppearance} />
+        ) : (
+          <SignUp routing="virtual" appearance={authAppearance} />
+        )}
+        <p className="auth-toggle">
+          {mode === 'sign-in' ? (
+            <>Don't have an account? <button onClick={() => setMode('sign-up')}>Sign up</button></>
+          ) : (
+            <>Already have an account? <button onClick={() => setMode('sign-in')}>Sign in</button></>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <>
+      <Show when="signed-out">
+        <AuthScreen />
+      </Show>
+      <Show when="signed-in">
+        <MainApp />
+      </Show>
+    </>
   );
 }
 

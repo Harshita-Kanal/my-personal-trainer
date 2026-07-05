@@ -1,4 +1,5 @@
-import { Dumbbell, Plus, MessageSquare, Calendar, Trash2 } from 'lucide-react';
+import { Plus, MessageSquare, Calendar, Trash2, LogOut } from 'lucide-react';
+import { UserButton, SignOutButton } from '@clerk/react';
 
 export function Sidebar({ sessions, currentSessionId, currentView, onNewChat, onLoadSession, onDeleteSession, onViewChange, isOpen, onClose }) {
   return (
@@ -6,7 +7,7 @@ export function Sidebar({ sessions, currentSessionId, currentView, onNewChat, on
       {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
       <div className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar-brand">
-          <Dumbbell size={22} strokeWidth={2} />
+          <span className="sidebar-brand-icon">🏋️</span>
           <span>Strength Coach</span>
         </div>
 
@@ -49,6 +50,30 @@ export function Sidebar({ sessions, currentSessionId, currentView, onNewChat, on
           >
             <Calendar size={18} />
             Training Log
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 12px 0' }}>
+            <UserButton appearance={{ elements: { avatarBox: { width: 28, height: 28 } } }} />
+            <SignOutButton>
+              <button
+                title="Sign out"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontFamily: 'var(--font-family)',
+                  color: 'var(--text-muted)',
+                  padding: '4px 6px',
+                }}
+              >
+                <LogOut size={14} />
+                Sign out
+              </button>
+            </SignOutButton>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { get, post } from './api';
+import { get, post, del } from './api';
 
 export const workoutService = {
   saveLog: (log) =>
@@ -12,4 +12,7 @@ export const workoutService = {
 
   logRecovery: (metrics) =>
     post('/recovery', metrics),
+
+  clearHistory: () =>
+    del('/history'),
 };

@@ -19,7 +19,7 @@ export const InputBox = forwardRef(function InputBox({ value, onChange, onSend, 
     <div className={centered ? 'input-container-centered' : 'input-container'}>
       <div
         className="input-wrapper"
-        style={centered ? { padding: '12px 20px', borderRadius: '32px', background: 'var(--bg-sidebar)', borderColor: 'transparent' } : {}}
+        style={centered ? { padding: '9px 9px 9px 28px', borderRadius: '100px', background: 'var(--bg-main)', boxShadow: '0 8px 28px rgba(20, 23, 28, 0.07)' } : {}}
       >
         <textarea
           ref={textareaRef}
@@ -37,10 +37,10 @@ export const InputBox = forwardRef(function InputBox({ value, onChange, onSend, 
           style={centered ? { fontSize: '1.1rem', padding: '12px 0' } : {}}
         />
         <button
-          className="send-btn"
+          className={centered ? 'send-btn send-btn--centered' : 'send-btn'}
           onClick={() => onSend()}
           disabled={!value.trim() || disabled}
-          style={centered ? { width: '40px', height: '40px', marginBottom: '4px' } : {}}
+          style={centered ? { width: '46px', height: '46px', marginBottom: '0' } : {}}
         >
           <Send size={centered ? 18 : 16} />
         </button>

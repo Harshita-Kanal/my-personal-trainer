@@ -1,6 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Sidebar } from '../../components/Sidebar';
 
+vi.mock('@clerk/react', () => ({
+  UserButton: () => <div data-testid="user-button" />,
+  SignOutButton: ({ children }) => children,
+}));
+
 const sessions = [
   { id: 1, title: 'Monday Push' },
   { id: 2, title: 'Wednesday Pull' },

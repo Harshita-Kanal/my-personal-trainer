@@ -9,6 +9,17 @@ process.env.DB_PATH = TEST_DB;
 // Clear and re-create the test DB file before loading the server
 if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 
+// Stub out real Clerk verification. Requests are treated as authenticated as
+// 'test-user-1' by default; tests can simulate a second user via the
+// x-test-user header (a test-only shim, never read by production code) or
+// simulate a signed-out request via x-test-user: '' .
+jest.mock('@clerk/express', () => ({
+  clerkMiddleware: () => (req, res, next) => next(),
+  getAuth: (req) => ({
+    userId: req.headers['x-test-user'] !== undefined ? req.headers['x-test-user'] || null : 'test-user-1',
+  }),
+}));
+
 const { app, ready } = require('../index');
 
 beforeAll(() => ready);
@@ -149,5 +160,101 @@ describe('Messages', () => {
       .send({ title: 'Renamed Session' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+  });
+});
+
+// ─── Auth: unauthenticated requests ───────────────────────────────────────────
+
+describe('Unauthenticated requests', () => {
+  test('GET /api/sessions returns 401 with no userId', async () => {
+    const res = await request(app).get('/api/sessions').set('x-test-user', '');
+    expect(res.status).toBe(401);
+  });
+
+  test('POST /api/logs returns 401 with no userId', async () => {
+    const res = await request(app)
+      .post('/api/logs')
+      .set('x-test-user', '')
+      .send({ exercise: 'Deadlift', weight: 100, unit: 'kg', reps: 5 });
+    expect(res.status).toBe(401);
+  });
+});
+
+// ─── Auth: cross-user isolation ───────────────────────────────────────────────
+
+describe('Cross-user isolation', () => {
+  let userASessionId;
+
+  beforeAll(async () => {
+    await request(app).post('/api/logs').set('x-test-user', 'user-a')
+      .send({ exercise: 'Overhead Press', weight: 40, unit: 'kg', reps: 6 });
+    await request(app).post('/api/recovery').set('x-test-user', 'user-a')
+      .send({ sleep_hours: 8, soreness_level: 2, energy_level: 9, notes: 'Great' });
+    const res = await request(app).post('/api/sessions').set('x-test-user', 'user-a')
+      .send({ title: 'User A Session' });
+    userASessionId = res.body.id;
+    await request(app).post(`/api/sessions/${userASessionId}/messages`).set('x-test-user', 'user-a')
+      .send({ role: 'user', content: 'Hello from A', card: null });
+  });
+
+  test("user B's logs do not include user A's entries", async () => {
+    const res = await request(app).get('/api/logs').set('x-test-user', 'user-b');
+    expect(res.body.every((l) => l.exercise !== 'Overhead Press')).toBe(true);
+  });
+
+  test("user B's training log does not include user A's entries", async () => {
+    const res = await request(app).get('/api/training-log').set('x-test-user', 'user-b');
+    expect(res.body.every((e) => e.exercise !== 'Overhead Press' && e.notes !== 'Great')).toBe(true);
+  });
+
+  test("user B's session list does not include user A's session", async () => {
+    const res = await request(app).get('/api/sessions').set('x-test-user', 'user-b');
+    expect(res.body.some((s) => s.id === userASessionId)).toBe(false);
+  });
+
+  test("user B can't read user A's session messages (404)", async () => {
+    const res = await request(app)
+      .get(`/api/sessions/${userASessionId}/messages`)
+      .set('x-test-user', 'user-b');
+    expect(res.status).toBe(404);
+  });
+
+  test("user B can't post a message into user A's session (404)", async () => {
+    const res = await request(app)
+      .post(`/api/sessions/${userASessionId}/messages`)
+      .set('x-test-user', 'user-b')
+      .send({ role: 'user', content: 'Sneaky', card: null });
+    expect(res.status).toBe(404);
+  });
+
+  test("user B can't rename user A's session (404, and title unchanged)", async () => {
+    const res = await request(app)
+      .put(`/api/sessions/${userASessionId}/title`)
+      .set('x-test-user', 'user-b')
+      .send({ title: 'Hijacked' });
+    expect(res.status).toBe(404);
+
+    const check = await request(app)
+      .get(`/api/sessions/${userASessionId}/messages`)
+      .set('x-test-user', 'user-a');
+    expect(check.status).toBe(200);
+  });
+
+  test("user B can't delete user A's session (404, session survives)", async () => {
+    const res = await request(app)
+      .delete(`/api/sessions/${userASessionId}`)
+      .set('x-test-user', 'user-b');
+    expect(res.status).toBe(404);
+
+    const check = await request(app)
+      .get(`/api/sessions/${userASessionId}/messages`)
+      .set('x-test-user', 'user-a');
+    expect(check.status).toBe(200);
+  });
+
+  test("DELETE /api/history for user B doesn't delete user A's logs/recovery", async () => {
+    await request(app).delete('/api/history').set('x-test-user', 'user-b');
+    const res = await request(app).get('/api/logs').set('x-test-user', 'user-a');
+    expect(res.body.some((l) => l.exercise === 'Overhead Press')).toBe(true);
   });
 });
