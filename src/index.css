@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Montserrat:wght@400;500;600;700&display=swap');
 
 :root {
   --primary: #14171c;
@@ -12,11 +12,9 @@
   --user-msg: #f2f3ef;
   --agent-msg: transparent;
 
-  --font-family: 'Inter', sans-serif;
+  --font-family: 'Montserrat', sans-serif;
   --font-heading: 'Baloo 2', sans-serif;
 
-  --accent-mint-start: #bfe8d4;
-  --accent-mint-end: #a3d9c9;
   --accent-lavender: rgba(199, 214, 240, 0.5);
 
   --accent-lavender-start: #eee7f1;
@@ -521,7 +519,7 @@ body {
 }
 
 .landing-feat-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-family);
   font-size: 16.5px;
   font-weight: 800;
   margin-bottom: 8px;
@@ -600,12 +598,12 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent-mint-start), var(--accent-mint-end));
+  background: linear-gradient(135deg, var(--accent-lavender-start), var(--accent-lavender-end));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 17px;
-  box-shadow: 0 2px 8px rgba(163, 217, 201, 0.5);
+  box-shadow: 0 2px 8px rgba(224, 210, 232, 0.5);
   flex-shrink: 0;
 }
 
@@ -627,8 +625,8 @@ body {
 }
 
 .new-chat-btn:hover {
-  border-color: var(--accent-mint-start);
-  box-shadow: 0 4px 14px rgba(191, 232, 212, 0.4);
+  border-color: var(--accent-lavender-end);
+  box-shadow: 0 4px 14px rgba(224, 210, 232, 0.4);
   transform: translateY(-1px);
 }
 
@@ -666,7 +664,7 @@ body {
   padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text-main);
   display: flex;
   align-items: center;
@@ -775,7 +773,7 @@ body {
   width: 100%;
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 0%, #fbfff0 0%, #ffffff 55%);
+  background: radial-gradient(circle at 50% 0%, var(--accent-lavender-soft) 0%, #ffffff 55%);
 }
 
 .new-chat-container::before {
@@ -787,7 +785,7 @@ body {
   width: 640px;
   height: 640px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(191, 232, 212, 0.55), transparent 68%);
+  background: radial-gradient(circle, var(--accent-lavender-blob), transparent 68%);
   filter: blur(6px);
   animation: blobPulse 8s ease-in-out infinite;
   pointer-events: none;
@@ -814,12 +812,12 @@ body {
   width: 88px;
   height: 88px;
   border-radius: 24px;
-  background: linear-gradient(135deg, #cdeee0, var(--accent-mint-end));
+  background: linear-gradient(135deg, var(--accent-lavender-start), var(--accent-lavender-end));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 42px;
-  box-shadow: 0 12px 32px rgba(163, 217, 201, 0.4);
+  box-shadow: 0 12px 32px rgba(224, 210, 232, 0.4);
 }
 
 .hero-branding h2 {
@@ -895,7 +893,7 @@ body {
 }
 
 .message-bubble {
-  font-size: 1rem;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
@@ -910,7 +908,7 @@ body {
   background: var(--border);
   padding: 1px 5px;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 0.875rem;
 }
 
 .message-wrapper.user .message-bubble {
@@ -967,7 +965,7 @@ body {
   background: transparent;
   outline: none;
   font-family: var(--font-family);
-  font-size: 1rem;
+  font-size: 0.875rem !important;
   padding: 10px 0;
   max-height: 200px;
   resize: none;
@@ -998,13 +996,13 @@ body {
 
 .input-wrapper[data-centered] .send-btn,
 .send-btn.send-btn--centered {
-  background: linear-gradient(135deg, var(--accent-mint-start), var(--accent-mint-end));
+  background: linear-gradient(135deg, var(--accent-lavender-start), var(--accent-lavender-end));
   color: #0f1115;
-  box-shadow: 0 4px 14px rgba(143, 232, 106, 0.4);
+  box-shadow: 0 4px 14px rgba(224, 210, 232, 0.4);
 }
 
 .send-btn.send-btn--centered:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--accent-mint-start), var(--accent-mint-end));
+  background: linear-gradient(135deg, var(--accent-lavender-start), var(--accent-lavender-end));
   transform: scale(1.06);
 }
 
@@ -1032,7 +1030,7 @@ body {
 
 .agent-card-title {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: var(--text-main);
   margin-bottom: 12px;
   display: flex;
@@ -1106,6 +1104,7 @@ body {
   gap: 14px;
   padding: 20px 22px;
   background: var(--bg-main);
+  font-family: var(--font-family);
   border: 1px solid #eaeae6;
   border-radius: 18px;
   cursor: pointer;
@@ -1114,7 +1113,7 @@ body {
 }
 
 .suggestion-card:hover {
-  border-color: var(--accent-mint-start);
+  border-color: var(--accent-lavender-end);
   box-shadow: 0 10px 28px rgba(20, 23, 28, 0.08);
   transform: translateY(-3px);
 }
@@ -1131,7 +1130,7 @@ body {
 }
 
 .suggestion-card-icon--mint {
-  background: rgba(191, 232, 212, 0.5);
+  background: var(--accent-lavender-soft);
 }
 
 .suggestion-card-icon--lavender {
