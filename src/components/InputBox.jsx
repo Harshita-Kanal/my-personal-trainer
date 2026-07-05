@@ -1,8 +1,22 @@
-import { forwardRef, useRef, useImperativeHandle } from 'react';
+import { forwardRef, useRef, useState, useEffect, useImperativeHandle } from 'react';
 import { Send } from 'lucide-react';
+
+function useIsNarrowViewport(breakpoint = 480) {
+  const [isNarrow, setIsNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= breakpoint);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handleChange = (e) => setIsNarrow(e.matches);
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, [breakpoint]);
+
+  return isNarrow;
+}
 
 export const InputBox = forwardRef(function InputBox({ value, onChange, onSend, disabled, centered = false }, ref) {
   const textareaRef = useRef(null);
+  const isNarrow = useIsNarrowViewport();
 
   useImperativeHandle(ref, () => ({
     focus: () => textareaRef.current?.focus(),
@@ -24,7 +38,7 @@ export const InputBox = forwardRef(function InputBox({ value, onChange, onSend, 
         <textarea
           ref={textareaRef}
           className="message-input"
-          placeholder={centered ? 'Log your set or ask for a progression check...' : 'Message Strength Coach...'}
+          placeholder={centered ? (isNarrow ? 'Log a set or ask a question...' : 'Log your set or ask for a progression check...') : 'Message Strength Coach...'}
           value={value}
           onChange={(e) => {
             onChange(e.target.value);

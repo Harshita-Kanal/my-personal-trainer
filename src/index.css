@@ -975,6 +975,7 @@ body {
   color: var(--text-muted);
 }
 
+
 .send-btn {
   background: var(--primary);
   color: white;
@@ -1154,5 +1155,54 @@ body {
 @media (max-width: 600px) {
   .suggestions-grid {
     grid-template-columns: 1fr;
+    padding: 0 12px;
+    margin-top: 24px;
+  }
+
+  .suggestion-card {
+    padding: 16px 18px;
+  }
+
+  .new-chat-container {
+    padding: 16px;
+    padding-top: 56px;
+    justify-content: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .input-container-centered {
+    padding: 12px;
+  }
+
+  .input-container-centered .input-wrapper {
+    padding: 8px 8px 8px 16px !important;
+  }
+
+  .input-container-centered .message-input {
+    font-size: 0.95rem !important;
+  }
+
+  .new-chat-container::before {
+    width: 320px;
+    height: 320px;
+    top: -80px;
+  }
+
+  .hero-branding {
+    margin-bottom: 24px;
+  }
+
+  .hero-icon-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    font-size: 30px;
+  }
+
+  .hero-branding h2 {
+    font-size: 26px;
+    margin-top: 16px;
+    text-align: center;
   }
 }
