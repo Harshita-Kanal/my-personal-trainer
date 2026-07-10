@@ -142,12 +142,30 @@ describe('executeTool: log_workout_set', () => {
 
     const result = await executeTool({
       name: 'log_workout_set',
-      args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5 },
+      args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true },
     });
 
-    expect(workoutService.saveLog).toHaveBeenCalledWith({ exercise: 'Squat', weight: 100, unit: 'kg', reps: 5 });
+    expect(workoutService.saveLog).toHaveBeenCalledWith({ exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true });
     expect(result.status).toBe('success');
     expect(result.log).toEqual(saved);
+  });
+
+  test('rejects when confirmed_by_user is not explicitly true', async () => {
+    const result = await executeTool({
+      name: 'log_workout_set',
+      args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5 },
+    });
+    expect(result.status).toBe('error');
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
+  });
+
+  test('rejects hypothetical sets even when confirmed_by_user is false', async () => {
+    const result = await executeTool({
+      name: 'log_workout_set',
+      args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: false },
+    });
+    expect(result.status).toBe('error');
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
   });
 });
 
@@ -185,12 +203,30 @@ describe('executeTool: log_recovery_metrics', () => {
 
     const result = await executeTool({
       name: 'log_recovery_metrics',
-      args: { sleep_hours: 7, soreness_level: 3, energy_level: 8 },
+      args: { sleep_hours: 7, soreness_level: 3, energy_level: 8, confirmed_by_user: true },
     });
 
-    expect(workoutService.logRecovery).toHaveBeenCalledWith({ sleep_hours: 7, soreness_level: 3, energy_level: 8 });
+    expect(workoutService.logRecovery).toHaveBeenCalledWith({ sleep_hours: 7, soreness_level: 3, energy_level: 8, confirmed_by_user: true });
     expect(result.status).toBe('success');
     expect(result.recovery).toEqual(saved);
+  });
+
+  test('rejects missing sleep_hours without touching the database', async () => {
+    const result = await executeTool({ name: 'log_recovery_metrics', args: { soreness_level: 3, confirmed_by_user: true } });
+    expect(result.status).toBe('error');
+    expect(workoutService.logRecovery).not.toHaveBeenCalled();
+  });
+
+  test('rejects zero or invalid sleep_hours', async () => {
+    const result = await executeTool({ name: 'log_recovery_metrics', args: { sleep_hours: 0, confirmed_by_user: true } });
+    expect(result.status).toBe('error');
+    expect(workoutService.logRecovery).not.toHaveBeenCalled();
+  });
+
+  test('rejects when confirmed_by_user is not explicitly true', async () => {
+    const result = await executeTool({ name: 'log_recovery_metrics', args: { sleep_hours: 7 } });
+    expect(result.status).toBe('error');
+    expect(workoutService.logRecovery).not.toHaveBeenCalled();
   });
 });
 

@@ -16,16 +16,17 @@ export const gymTools = [
       },
       {
         name: "log_workout_set",
-        description: "Logs a single workout set. Use this whenever the user reports an exercise, weight, and reps.",
+        description: "Logs a single workout set. Use this whenever the user reports an exercise, weight, and reps. Do NOT use for hypothetical, planned, or future sets (e.g. 'should I try 100kg for 5?') — only for a set the user says they already did.",
         parameters: {
           type: "OBJECT",
           properties: {
             exercise: { type: "STRING", description: "Name of the exercise (e.g., Squat, Bench Press)" },
             weight: { type: "NUMBER", description: "Weight used" },
             unit: { type: "STRING", description: "Unit of weight (kg or lbs)" },
-            reps: { type: "NUMBER", description: "Number of reps completed" }
+            reps: { type: "NUMBER", description: "Number of reps completed" },
+            confirmed_by_user: { type: "BOOLEAN", description: "Set to true ONLY if the user explicitly stated, in this conversation, that they already completed this exact set. Set to false (or omit the call entirely) for hypotheticals, plans, questions, or advice-seeking." }
           },
-          required: ["exercise", "weight", "unit", "reps"]
+          required: ["exercise", "weight", "unit", "reps", "confirmed_by_user"]
         }
       },
       {
@@ -52,15 +53,16 @@ export const gymTools = [
       },
       {
         name: "log_recovery_metrics",
-        description: "Logs fatigue metrics (sleep, soreness) to inform future training.",
+        description: "Logs fatigue metrics (sleep, soreness) to inform future training. Do NOT use for hypothetical scenarios (e.g. 'what if I only got 5 hours?') — only for the user's actual, current state.",
         parameters: {
           type: "OBJECT",
           properties: {
             sleep_hours: { type: "NUMBER", description: "Hours slept" },
             soreness_level: { type: "NUMBER", description: "1-10 scale" },
-            energy_level: { type: "NUMBER", description: "1-10 scale" }
+            energy_level: { type: "NUMBER", description: "1-10 scale" },
+            confirmed_by_user: { type: "BOOLEAN", description: "Set to true ONLY if the user explicitly shared this as their own real, current recovery state. Set to false (or omit the call entirely) for hypotheticals or general questions." }
           },
-          required: ["sleep_hours"]
+          required: ["sleep_hours", "confirmed_by_user"]
         }
       }
     ]
@@ -109,6 +111,7 @@ export const executeTool = async (functionCall) => {
   }
 
   if (name === 'log_workout_set') {
+    if (args.confirmed_by_user !== true) return { status: 'error', message: 'This set was not confirmed as something the user actually completed. Do not call this tool for hypothetical, planned, or advice-seeking questions — only when the user reports a set they already did.' };
     const exerciseErr = requireExercise(args.exercise);
     if (exerciseErr) return exerciseErr;
     const weight = Number(args.weight);
@@ -128,6 +131,11 @@ export const executeTool = async (functionCall) => {
   }
 
   if (name === 'log_recovery_metrics') {
+    if (args.confirmed_by_user !== true) return { status: 'error', message: 'This recovery data was not confirmed as the user\'s real, current state. Do not call this tool for hypotheticals or general questions — only when the user shares their actual condition.' };
+    const sleepHours = Number(args.sleep_hours);
+    if (args.sleep_hours === undefined || args.sleep_hours === null || isNaN(sleepHours) || sleepHours <= 0) {
+      return { status: 'error', message: 'No valid sleep hours specified. Ask the user how many hours they slept before logging recovery data.' };
+    }
     const res = await workoutService.logRecovery(args);
     return { status: "success", message: "Recovery data saved to SQLite database", recovery: res };
   }
