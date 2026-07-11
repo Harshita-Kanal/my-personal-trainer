@@ -86,7 +86,7 @@ export function useChatSession(llmConfig, onToolAction) {
       for (const call of functionCalls) {
         let result;
         try {
-          result = await executeTool(call);
+          result = await executeTool(call, historyContext);
         } catch (err) {
           console.error(`Tool failed: ${call.name}`, err);
           setMessages((prev) => [

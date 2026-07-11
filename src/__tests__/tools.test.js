@@ -135,15 +135,17 @@ describe('executeTool: look_up_form', () => {
 
 // ─── log_workout_set ──────────────────────────────────────────────────────────
 
+const userSaid = (text) => [{ role: 'user', parts: [{ text }] }];
+
 describe('executeTool: log_workout_set', () => {
   test('calls workoutService.saveLog with the provided args and returns success', async () => {
     const saved = { id: 1, exercise: 'Squat', weight: 100, unit: 'kg', reps: 5 };
     workoutService.saveLog.mockResolvedValue(saved);
 
-    const result = await executeTool({
-      name: 'log_workout_set',
-      args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true },
-    });
+    const result = await executeTool(
+      { name: 'log_workout_set', args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true } },
+      userSaid('Just did squat, 100kg for 5 reps')
+    );
 
     expect(workoutService.saveLog).toHaveBeenCalledWith({ exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true });
     expect(result.status).toBe('success');
@@ -163,6 +165,26 @@ describe('executeTool: log_workout_set', () => {
     const result = await executeTool({
       name: 'log_workout_set',
       args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: false },
+    });
+    expect(result.status).toBe('error');
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
+  });
+
+  test('rejects a recommended number the model logs as if the user reported it, even with confirmed_by_user true', async () => {
+    // Reproduces: assistant recommends "3 sets of 8-12 reps at 45kg", then calls log_workout_set
+    // with reps: 8 — a number the assistant picked, not one the user ever typed.
+    const result = await executeTool(
+      { name: 'log_workout_set', args: { exercise: 'bench press', weight: 45, unit: 'kg', reps: 8, confirmed_by_user: true } },
+      userSaid('how many reps should I target')
+    );
+    expect(result.status).toBe('error');
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
+  });
+
+  test('rejects when no conversation history is provided at all', async () => {
+    const result = await executeTool({
+      name: 'log_workout_set',
+      args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true },
     });
     expect(result.status).toBe('error');
     expect(workoutService.saveLog).not.toHaveBeenCalled();
@@ -201,14 +223,23 @@ describe('executeTool: log_recovery_metrics', () => {
     const saved = { id: 1, sleep_hours: 7, soreness_level: 3, energy_level: 8 };
     workoutService.logRecovery.mockResolvedValue(saved);
 
-    const result = await executeTool({
-      name: 'log_recovery_metrics',
-      args: { sleep_hours: 7, soreness_level: 3, energy_level: 8, confirmed_by_user: true },
-    });
+    const result = await executeTool(
+      { name: 'log_recovery_metrics', args: { sleep_hours: 7, soreness_level: 3, energy_level: 8, confirmed_by_user: true } },
+      userSaid('I slept 7 hours last night')
+    );
 
     expect(workoutService.logRecovery).toHaveBeenCalledWith({ sleep_hours: 7, soreness_level: 3, energy_level: 8, confirmed_by_user: true });
     expect(result.status).toBe('success');
     expect(result.recovery).toEqual(saved);
+  });
+
+  test('rejects a sleep value the user never typed, even with confirmed_by_user true', async () => {
+    const result = await executeTool(
+      { name: 'log_recovery_metrics', args: { sleep_hours: 5, confirmed_by_user: true } },
+      userSaid('been feeling kind of tired lately')
+    );
+    expect(result.status).toBe('error');
+    expect(workoutService.logRecovery).not.toHaveBeenCalled();
   });
 
   test('rejects missing sleep_hours without touching the database', async () => {

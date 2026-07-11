@@ -81,7 +81,24 @@ const requireExercise = (exercise) => {
   return null;
 };
 
-export const executeTool = async (functionCall) => {
+// Cross-checks a logged number against what the user actually typed, rather than trusting the
+// model's own confirmed_by_user flag — a model that hallucinates a set will just as readily
+// hallucinate its own confirmation of it.
+const numberWasTypedByUser = (value, history, lookback = 8) => {
+  const num = Number(value);
+  if (value === undefined || value === null || isNaN(num)) return false;
+  // Guard against adjacent digits only (so "100kg" and "45kg" still match) — a plain \b...\b
+  // fails here because digits and letters are both "word" characters, so there's no boundary
+  // between "0" and "k" in "100kg".
+  const pattern = new RegExp(`(?<!\\d)${num}(?!\\d)`);
+  const userTexts = (history || [])
+    .filter((m) => m.role === 'user')
+    .flatMap((m) => (m.parts || []).filter((p) => p.text).map((p) => p.text))
+    .slice(-lookback);
+  return userTexts.some((text) => pattern.test(text));
+};
+
+export const executeTool = async (functionCall, history = []) => {
   const { name, args } = functionCall;
 
   if (name === 'web_search') {
@@ -119,6 +136,9 @@ export const executeTool = async (functionCall) => {
     if (!args.weight || isNaN(weight) || weight <= 0) return { status: 'error', message: 'No valid weight specified. Ask the user what weight they used (a number in kg or lbs).' };
     if (!args.reps || isNaN(reps) || reps <= 0) return { status: 'error', message: 'No valid rep count specified. Ask the user how many reps they completed.' };
     if (!args.unit || /bodyweight|bw/i.test(args.unit)) return { status: 'error', message: 'No unit specified. Ask the user whether the weight is in kg or lbs.' };
+    if (!numberWasTypedByUser(weight, history) || !numberWasTypedByUser(reps, history)) {
+      return { status: 'error', message: `The weight (${weight}) and reps (${reps}) must be numbers the user actually typed themselves — not a recommendation, target, or number you picked. Ask the user to confirm exactly what they did.` };
+    }
     const log = await workoutService.saveLog(args);
     return { status: "success", message: "Set saved to SQLite database", log };
   }
@@ -135,6 +155,9 @@ export const executeTool = async (functionCall) => {
     const sleepHours = Number(args.sleep_hours);
     if (args.sleep_hours === undefined || args.sleep_hours === null || isNaN(sleepHours) || sleepHours <= 0) {
       return { status: 'error', message: 'No valid sleep hours specified. Ask the user how many hours they slept before logging recovery data.' };
+    }
+    if (!numberWasTypedByUser(sleepHours, history)) {
+      return { status: 'error', message: `Sleep hours (${sleepHours}) must be a number the user actually typed themselves. Ask them to confirm before logging.` };
     }
     const res = await workoutService.logRecovery(args);
     return { status: "success", message: "Recovery data saved to SQLite database", recovery: res };
