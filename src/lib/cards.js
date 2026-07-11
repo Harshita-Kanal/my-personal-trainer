@@ -8,6 +8,8 @@
  * @returns {{ type, title, stats?, insight } | null}
  */
 export function buildCardData(callName, args, result) {
+  if (result?.status === 'error') return null;
+
   if (callName === 'log_workout_set') {
     const log = result.log || args;
     const unit = (log.unit || '').toLowerCase();

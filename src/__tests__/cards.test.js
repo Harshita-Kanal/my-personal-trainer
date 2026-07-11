@@ -83,3 +83,27 @@ describe('buildCardData: unknown tool', () => {
     expect(buildCardData('unknown_tool', {}, {})).toBeNull();
   });
 });
+
+describe('buildCardData: rejected tool calls', () => {
+  test('returns null for a rejected log_workout_set instead of rendering fabricated args', () => {
+    const card = buildCardData(
+      'log_workout_set',
+      { exercise: 'deadlift', weight: 0, reps: 0, confirmed_by_user: false },
+      { status: 'error', message: 'This set was not confirmed as something the user actually completed.' }
+    );
+    expect(card).toBeNull();
+  });
+
+  test('returns null for a rejected log_recovery_metrics', () => {
+    const card = buildCardData(
+      'log_recovery_metrics',
+      { sleep_hours: 0 },
+      { status: 'error', message: 'No valid sleep hours specified.' }
+    );
+    expect(card).toBeNull();
+  });
+
+  test('returns null for any tool call that errored, regardless of name', () => {
+    expect(buildCardData('get_exercise_history', { exercise: 'Squat' }, { status: 'error' })).toBeNull();
+  });
+});
