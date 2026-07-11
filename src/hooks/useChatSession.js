@@ -113,7 +113,7 @@ export function useChatSession(llmConfig, onToolAction) {
           }
         }
 
-        if (['log_workout_set', 'log_recovery_metrics'].includes(call.name)) {
+        if (['log_workout_set', 'log_multiple_sets', 'log_recovery_metrics'].includes(call.name)) {
           onToolAction?.();
         }
       }

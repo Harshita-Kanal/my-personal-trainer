@@ -147,7 +147,7 @@ describe('executeTool: log_workout_set', () => {
       userSaid('Just did squat, 100kg for 5 reps')
     );
 
-    expect(workoutService.saveLog).toHaveBeenCalledWith({ exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true });
+    expect(workoutService.saveLog).toHaveBeenCalledWith({ exercise: 'Squat', weight: 100, unit: 'kg', reps: 5 });
     expect(result.status).toBe('success');
     expect(result.log).toEqual(saved);
   });
@@ -186,6 +186,112 @@ describe('executeTool: log_workout_set', () => {
       name: 'log_workout_set',
       args: { exercise: 'Squat', weight: 100, unit: 'kg', reps: 5, confirmed_by_user: true },
     });
+    expect(result.status).toBe('error');
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
+  });
+});
+
+// ─── log_multiple_sets ────────────────────────────────────────────────────────
+
+describe('executeTool: log_multiple_sets', () => {
+  const history = userSaid(
+    'pullups 20kg support 15 reps, chest press 20kg 20 reps, dumbell rows 7.5kg 15 reps, 5kg 20 reps, 5kg 20 reps'
+  );
+
+  test('saves each set individually and returns one result per set', async () => {
+    workoutService.saveLog
+      .mockResolvedValueOnce({ id: 1, exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 })
+      .mockResolvedValueOnce({ id: 2, exercise: 'chest press', weight: 20, unit: 'kg', reps: 20 })
+      .mockResolvedValueOnce({ id: 3, exercise: 'dumbell rows', weight: 7.5, unit: 'kg', reps: 15 });
+
+    const result = await executeTool(
+      {
+        name: 'log_multiple_sets',
+        args: {
+          confirmed_by_user: true,
+          sets: [
+            { exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 },
+            { exercise: 'chest press', weight: 20, unit: 'kg', reps: 20 },
+            { exercise: 'dumbell rows', weight: 7.5, unit: 'kg', reps: 15 },
+          ],
+        },
+      },
+      history
+    );
+
+    expect(workoutService.saveLog).toHaveBeenCalledTimes(3);
+    expect(workoutService.saveLog).toHaveBeenNthCalledWith(1, { exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 });
+    expect(result.status).toBe('success');
+    expect(result.logs).toHaveLength(3);
+  });
+
+  test('logs the valid sets and reports skipped ones instead of failing the whole batch', async () => {
+    workoutService.saveLog.mockResolvedValue({ id: 1 });
+
+    const result = await executeTool(
+      {
+        name: 'log_multiple_sets',
+        args: {
+          confirmed_by_user: true,
+          sets: [
+            { exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 },
+            { exercise: 'push ups', weight: 0, unit: 'kg', reps: 15 }, // no real weight — bodyweight not supported
+          ],
+        },
+      },
+      history
+    );
+
+    expect(result.status).toBe('success');
+    expect(result.logs).toHaveLength(1);
+    expect(result.skipped).toHaveLength(1);
+    expect(workoutService.saveLog).toHaveBeenCalledTimes(1);
+  });
+
+  test('rejects the whole batch when confirmed_by_user is not explicitly true', async () => {
+    const result = await executeTool({
+      name: 'log_multiple_sets',
+      args: {
+        sets: [
+          { exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 },
+          { exercise: 'chest press', weight: 20, unit: 'kg', reps: 20 },
+        ],
+      },
+    });
+    expect(result.status).toBe('error');
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
+  });
+
+  test('rejects an empty sets array', async () => {
+    const result = await executeTool({ name: 'log_multiple_sets', args: { confirmed_by_user: true, sets: [] } });
+    expect(result.status).toBe('error');
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
+  });
+
+  test('rejects a single-set batch, pointing the caller at log_workout_set', async () => {
+    const result = await executeTool(
+      { name: 'log_multiple_sets', args: { confirmed_by_user: true, sets: [{ exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 }] } },
+      history
+    );
+    expect(result.status).toBe('error');
+    expect(result.message).toMatch(/log_workout_set/);
+    expect(workoutService.saveLog).not.toHaveBeenCalled();
+  });
+
+  test('rejects sets with numbers the user never typed, even with confirmed_by_user true', async () => {
+    const result = await executeTool(
+      {
+        name: 'log_multiple_sets',
+        args: {
+          confirmed_by_user: true,
+          sets: [
+            { exercise: 'squat', weight: 999, unit: 'kg', reps: 5 },
+            { exercise: 'bench press', weight: 888, unit: 'kg', reps: 5 },
+          ],
+        },
+      },
+      userSaid('logged my sets, they were great')
+    );
     expect(result.status).toBe('error');
     expect(workoutService.saveLog).not.toHaveBeenCalled();
   });

@@ -27,6 +27,24 @@ export function buildCardData(callName, args, result) {
     };
   }
 
+  if (callName === 'log_multiple_sets') {
+    const logs = result.logs || [];
+    const skippedCount = result.skipped?.length ?? 0;
+    return {
+      type: 'progress',
+      title: `${logs.length} Set${logs.length !== 1 ? 's' : ''} Logged`,
+      stats: logs.map((log) => {
+        const unit = (log.unit || '').toLowerCase();
+        const isBodyweight = unit === 'bodyweight' || unit === 'bw' || Number(log.weight) === 0;
+        const weightDisplay = isBodyweight ? 'Bodyweight' : `${log.weight} ${log.unit}`;
+        return { label: log.exercise, value: `${weightDisplay} × ${log.reps}` };
+      }),
+      insight: skippedCount > 0
+        ? `Saved to your training log. ${skippedCount} set${skippedCount !== 1 ? 's' : ''} skipped — missing details.`
+        : 'All sets saved to your training log.',
+    };
+  }
+
   if (callName === 'get_exercise_history') {
     const count = result.history?.length ?? 0;
     return {

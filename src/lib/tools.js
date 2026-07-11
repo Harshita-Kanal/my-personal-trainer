@@ -30,6 +30,31 @@ export const gymTools = [
         }
       },
       {
+        name: "log_multiple_sets",
+        description: "Logs several workout sets in a single call. Use this whenever the user reports more than one set in a single message — whether repeated sets of the same exercise ('5kg for 20 reps, then 5kg for 20 reps again') or a whole session across several exercises (push-ups, then pull-ups, then rows). Do NOT use this for a single set — call log_workout_set instead.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            sets: {
+              type: "ARRAY",
+              description: "One entry per individual set the user actually completed, in the order they were reported.",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  exercise: { type: "STRING", description: "Name of the exercise (e.g., Squat, Bench Press)" },
+                  weight: { type: "NUMBER", description: "Weight used" },
+                  unit: { type: "STRING", description: "Unit of weight (kg or lbs)" },
+                  reps: { type: "NUMBER", description: "Number of reps completed" }
+                },
+                required: ["exercise", "weight", "unit", "reps"]
+              }
+            },
+            confirmed_by_user: { type: "BOOLEAN", description: "Set to true ONLY if the user explicitly confirmed, in this conversation, that they completed all of these sets. Set to false (or omit the call entirely) for hypotheticals, plans, or unconfirmed reports." }
+          },
+          required: ["sets", "confirmed_by_user"]
+        }
+      },
+      {
         name: "get_exercise_history",
         description: "Retrieves the user's past performance logs for a specific exercise to evaluate progression or plateau.",
         parameters: {
@@ -98,6 +123,22 @@ const numberWasTypedByUser = (value, history, lookback = 8) => {
   return userTexts.some((text) => pattern.test(text));
 };
 
+// Validates a single set's fields (shared by log_workout_set and log_multiple_sets).
+// Returns { error: string } or { valid: { exercise, weight, unit, reps } }.
+const validateSet = (set, history) => {
+  const exerciseErr = requireExercise(set.exercise);
+  if (exerciseErr) return { error: exerciseErr.message };
+  const weight = Number(set.weight);
+  const reps = Number(set.reps);
+  if (!set.weight || isNaN(weight) || weight <= 0) return { error: 'No valid weight specified.' };
+  if (!set.reps || isNaN(reps) || reps <= 0) return { error: 'No valid rep count specified.' };
+  if (!set.unit || /bodyweight|bw/i.test(set.unit)) return { error: 'No unit specified.' };
+  if (!numberWasTypedByUser(weight, history) || !numberWasTypedByUser(reps, history)) {
+    return { error: `The weight (${weight}) and reps (${reps}) must be numbers the user actually typed themselves — not a recommendation, target, or number picked for them.` };
+  }
+  return { valid: { exercise: set.exercise.trim(), weight, unit: set.unit, reps } };
+};
+
 export const executeTool = async (functionCall, history = []) => {
   const { name, args } = functionCall;
 
@@ -129,18 +170,40 @@ export const executeTool = async (functionCall, history = []) => {
 
   if (name === 'log_workout_set') {
     if (args.confirmed_by_user !== true) return { status: 'error', message: 'This set was not confirmed as something the user actually completed. Do not call this tool for hypothetical, planned, or advice-seeking questions — only when the user reports a set they already did.' };
-    const exerciseErr = requireExercise(args.exercise);
-    if (exerciseErr) return exerciseErr;
-    const weight = Number(args.weight);
-    const reps = Number(args.reps);
-    if (!args.weight || isNaN(weight) || weight <= 0) return { status: 'error', message: 'No valid weight specified. Ask the user what weight they used (a number in kg or lbs).' };
-    if (!args.reps || isNaN(reps) || reps <= 0) return { status: 'error', message: 'No valid rep count specified. Ask the user how many reps they completed.' };
-    if (!args.unit || /bodyweight|bw/i.test(args.unit)) return { status: 'error', message: 'No unit specified. Ask the user whether the weight is in kg or lbs.' };
-    if (!numberWasTypedByUser(weight, history) || !numberWasTypedByUser(reps, history)) {
-      return { status: 'error', message: `The weight (${weight}) and reps (${reps}) must be numbers the user actually typed themselves — not a recommendation, target, or number you picked. Ask the user to confirm exactly what they did.` };
-    }
-    const log = await workoutService.saveLog(args);
+    const { valid, error } = validateSet(args, history);
+    if (error) return { status: 'error', message: `${error} Ask the user to confirm the details before logging.` };
+    const log = await workoutService.saveLog(valid);
     return { status: "success", message: "Set saved to SQLite database", log };
+  }
+
+  if (name === 'log_multiple_sets') {
+    if (args.confirmed_by_user !== true) return { status: 'error', message: 'These sets were not confirmed as something the user actually completed. Do not call this tool for hypothetical, planned, or advice-seeking questions — only when the user confirms a full report of sets they already did.' };
+    const sets = Array.isArray(args.sets) ? args.sets : [];
+    if (sets.length === 0) return { status: 'error', message: 'No sets provided.' };
+    if (sets.length === 1) return { status: 'error', message: 'Only one set was provided. Use log_workout_set for a single set instead.' };
+
+    const logs = [];
+    const skipped = [];
+    for (const [i, set] of sets.entries()) {
+      const { valid, error } = validateSet(set, history);
+      if (error) {
+        skipped.push({ index: i, exercise: set?.exercise, reason: error });
+        continue;
+      }
+      const log = await workoutService.saveLog(valid);
+      logs.push(log);
+    }
+
+    if (logs.length === 0) {
+      return { status: 'error', message: `None of the sets could be logged: ${skipped.map((s) => `"${s.exercise || 'unknown'}" (${s.reason})`).join('; ')}. Ask the user for the missing details.` };
+    }
+
+    return {
+      status: 'success',
+      message: `${logs.length} set(s) saved to SQLite database${skipped.length ? `, ${skipped.length} skipped` : ''}`,
+      logs,
+      skipped: skipped.length ? skipped : undefined,
+    };
   }
 
   if (name === 'get_exercise_history') {

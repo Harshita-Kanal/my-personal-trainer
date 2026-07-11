@@ -190,7 +190,10 @@ export async function* streamOpenAICompatibleChat({
         const args = JSON.parse(tool.argsString || '{}');
         yield [{ functionCall: { name: tool.name, args } }];
       } catch {
-        console.error('Failed to parse tool args', tool.argsString);
+        // Don't silently drop this call — the model believes it succeeded and will move on.
+        // Surface it with empty args so downstream validation rejects it visibly instead.
+        console.error('Failed to parse tool args, forwarding as empty args', tool.name, tool.argsString);
+        yield [{ functionCall: { name: tool.name, args: {} } }];
       }
     }
   }
@@ -199,7 +202,7 @@ export async function* streamOpenAICompatibleChat({
 // Parses text-mode function call formats emitted by some models instead of structured tool_calls.
 // Handles: <tool_call>{"name":...,"arguments":...}</tool_call>
 //          <function_calls><invoke name="..."><parameter name="p">v</parameter></invoke></function_calls>
-function extractTextModeFunctionCall(text) {
+export function extractTextModeFunctionCall(text) {
   const calls = [];
   let preamble = text;
 
@@ -215,7 +218,11 @@ function extractTextModeFunctionCall(text) {
         calls.push({ name, args });
         preamble = preamble.replace(m[0], '');
       }
-    } catch { /* ignore malformed */ }
+    } catch {
+      // No name could be recovered from malformed JSON — log so a dropped call is at least
+      // visible in dev tools instead of vanishing with zero trace.
+      console.error('Failed to parse <tool_call> block, dropping silently', m[1]);
+    }
   }
 
   // Format 2: <function_calls><invoke name="...">...</invoke></function_calls>
@@ -251,7 +258,13 @@ function extractTextModeFunctionCall(text) {
           : {};
         calls.push({ name, args });
         preamble = preamble.replace(m[0], '');
-      } catch { /* ignore */ }
+      } catch {
+        // Name is known even though the args JSON is malformed — forward it with empty args
+        // instead of dropping the call, so it hits normal validation and produces a visible error.
+        console.error('Failed to parse <function=...> args, forwarding as empty args', m[1], m[2]);
+        calls.push({ name: m[1], args: {} });
+        preamble = preamble.replace(m[0], '');
+      }
     }
   }
 
@@ -267,7 +280,11 @@ function extractTextModeFunctionCall(text) {
         const args = jsonStart !== -1 && jsonEnd !== -1 ? JSON.parse(body.slice(jsonStart, jsonEnd + 1)) : {};
         calls.push({ name, args });
         preamble = preamble.replace(m[0], '');
-      } catch { /* ignore */ }
+      } catch {
+        console.error('Failed to parse <function(...)(...)> args, forwarding as empty args', m[1], m[2]);
+        calls.push({ name: m[1], args: {} });
+        preamble = preamble.replace(m[0], '');
+      }
     }
   }
 
@@ -280,7 +297,11 @@ function extractTextModeFunctionCall(text) {
         const args = JSON.parse(m[2]);
         calls.push({ name, args });
         preamble = preamble.replace(m[0], '');
-      } catch { /* ignore */ }
+      } catch {
+        console.error('Failed to parse <function_name {...}> args, forwarding as empty args', m[1], m[2]);
+        calls.push({ name: m[1], args: {} });
+        preamble = preamble.replace(m[0], '');
+      }
     }
   }
 

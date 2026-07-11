@@ -18,6 +18,34 @@ describe('buildCardData: log_workout_set', () => {
   });
 });
 
+describe('buildCardData: log_multiple_sets', () => {
+  test('builds a single card with one stat row per logged set', () => {
+    const card = buildCardData('log_multiple_sets', {}, {
+      status: 'success',
+      logs: [
+        { exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 },
+        { exercise: 'chest press', weight: 20, unit: 'kg', reps: 20 },
+        { exercise: 'dumbell rows', weight: 5, unit: 'kg', reps: 20 },
+      ],
+    });
+    expect(card.type).toBe('progress');
+    expect(card.title).toBe('3 Sets Logged');
+    expect(card.stats).toHaveLength(3);
+    expect(card.stats).toContainEqual({ label: 'pullups', value: '20 kg × 15' });
+    expect(card.insight).toMatch(/all sets saved/i);
+  });
+
+  test('mentions skipped sets in the insight when some were dropped', () => {
+    const card = buildCardData('log_multiple_sets', {}, {
+      status: 'success',
+      logs: [{ exercise: 'pullups', weight: 20, unit: 'kg', reps: 15 }],
+      skipped: [{ index: 1, exercise: 'push ups', reason: 'No valid weight specified.' }],
+    });
+    expect(card.title).toBe('1 Set Logged');
+    expect(card.insight).toMatch(/1 set skipped/i);
+  });
+});
+
 describe('buildCardData: get_exercise_history', () => {
   test('reports correct session count', () => {
     const card = buildCardData('get_exercise_history', { exercise: 'Deadlift' }, { history: [{}, {}, {}] });
